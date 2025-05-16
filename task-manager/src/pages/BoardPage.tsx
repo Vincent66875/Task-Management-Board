@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getFirestore, collection, doc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import app from '../firebase-config';
 import { fetchTasks, addTask, deleteTask, updateTask } from '../firebase/firestore-utils';
-import DraggableCard from '../components/DraggableCard';
-import { DndContext, closestCorners, DragEndEvent, useSensor, useSensors, closestCenter, PointerSensor } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, useSensor, useSensors, closestCenter, PointerSensor } from '@dnd-kit/core';
 import DroppableColumn from '../components/DroppableColumn';
 import { SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 
 const db = getFirestore(app);
 
