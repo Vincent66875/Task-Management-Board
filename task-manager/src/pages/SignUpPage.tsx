@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signUpWithEmail } from '../firebase-auth';
 
@@ -7,6 +7,30 @@ const SignUpPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Load dark mode preference from localStorage or default
+  useEffect(() => {
+    const darkModePref = localStorage.getItem('darkMode');
+    if (darkModePref === 'true') {
+      setIsDarkMode(true);
+      document.documentElement.classList.add('dark');
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    setIsDarkMode((prev) => {
+      const next = !prev;
+      if (next) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('darkMode', 'true');
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('darkMode', 'false');
+      }
+      return next;
+    });
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,15 +43,23 @@ const SignUpPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-sm">
+    <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-black'}`}>
+      {/* Dark Mode Toggle Button */}
+      <button
+        onClick={toggleTheme}
+        className="p-2 rounded bg-gray-300 dark:bg-gray-600 text-black dark:text-white absolute top-4 right-4"
+      >
+        {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+      </button>
+
+      <div className={`p-8 rounded-xl shadow-md w-full max-w-sm ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
         <h2 className="text-2xl font-bold mb-6 text-center">Sign Up</h2>
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
         <form onSubmit={handleSignUp} className="space-y-4">
           <input
             type="email"
             placeholder="Email"
-            className="w-full p-3 border border-gray-300 rounded-xl"
+            className={`w-full p-3 border rounded-xl ${isDarkMode ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-black'}`}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -35,7 +67,7 @@ const SignUpPage = () => {
           <input
             type="password"
             placeholder="Password"
-            className="w-full p-3 border border-gray-300 rounded-xl"
+            className={`w-full p-3 border rounded-xl ${isDarkMode ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-black'}`}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required

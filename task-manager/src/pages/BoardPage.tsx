@@ -149,8 +149,12 @@ const BoardPage = () => {
 
 
   if (loading) return (
-    <div className='min-h-screen bg-blue-50 dark:bg-gray-900'>
-      <div className="p-8 text-black dark:text-white">Loading...</div>
+    <div className="min-h-screen flex flex-col justify-center items-center bg-gray-100 dark:bg-gray-900 text-black dark:text-white">
+      <div className="relative w-24 h-24 mb-6">
+        <div className="absolute inset-0 rounded-full border-4 border-t-blue-500 animate-spin"></div>
+        <div className="absolute inset-0 rounded-full border-4 border-b-green-500 animate-spin-reverse"></div>
+      </div>
+      <p className="text-xl font-semibold animate-pulse">Loading your workspace...</p>
     </div>
   );
 
