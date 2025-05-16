@@ -1,7 +1,8 @@
 // src/pages/DashboardPage.tsx
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { fetchAllBoards, deleteAllBoards, createBoard, deleteBoardById } from '../firebase/firestore-utils';
+import { signOutUser } from '../firebase-auth';
 
 type Board = {
   id: string;
@@ -15,6 +16,7 @@ const DashboardPage = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isDarkMode, setDarkMode] = useState<boolean>(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const saved = localStorage.getItem('theme');
@@ -63,6 +65,15 @@ const DashboardPage = () => {
     setBoards(updated);
   }
 
+  const handleSignOut = async () => {
+    try {
+      await signOutUser();
+      navigate('/');
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   if (loading) return (
     <div className='min-h-screen bg-blue-50 dark:bg-gray-900'>
       <div className="p-8 text-black dark:text-white">Loading...</div>
@@ -75,15 +86,24 @@ const DashboardPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-black dark:text-white p-8 relative">
-      {/* Theme Toggle Button */}
-      <button
-        onClick={toggleTheme}
-        className="p-2 rounded bg-gray-300 dark:bg-gray-600 text-black dark:text-white absolute top-4 right-4"
-      >
-        {isDarkMode ? 'Light Mode' : 'Dark Mode'}
-      </button>
-      <h2 className="text-2xl font-bold mb-6">Dashboard</h2>
+      {/* Top-right Buttons */}
+      <div className="absolute top-4 right-4 flex gap-2">
+        <button
+          onClick={toggleTheme}
+          className="p-2 rounded bg-gray-300 dark:bg-gray-600 text-black dark:text-white hover:opacity-80"
+        >
+          {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+        </button>
+        <button
+          onClick={handleSignOut}
+          className="p-2 rounded bg-red-500 text-white hover:bg-red-600"
+        >
+          Sign Out
+        </button>
+      </div>
 
+      <h2 className="text-2xl font-bold mb-6">Dashboard</h2>
+      
       {/* Board Creation Form */}
       <div className="mb-6 bg-white dark:bg-gray-800 text-black dark:text-white p-4 rounded-xl shadow">
         <input
