@@ -1,0 +1,29 @@
+---
+collections:
+  users:
+    documentId: userId
+    fields:
+      displayName: string
+      email: string
+  boards:
+    documentId: boardId
+    fields:
+      title: string
+      ownerRef: reference (/users/userId)
+      accessCode: string
+      createdAt: timestamp
+      description: string
+      sharedWith:
+        type: array
+        items: reference (/users/userId)
+    subcollections:
+      tasks:
+        documentId: taskId
+        fields:
+          title: string
+          description: string
+          status:
+            type: string
+            enum: ['To Do', 'In Progress', 'Done']
+          assignedTo: reference (/users/userId)
+          createdAt: timestamp
