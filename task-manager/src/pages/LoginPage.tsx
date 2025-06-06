@@ -40,6 +40,7 @@ const LoginPage = () => {
       await signInWithGoogle();
       navigate('/dashboard');
     } catch (err) {
+      console.error("Google Sign-In Error:", err); // Add this line
       setError('Google login failed');
     }
   };
