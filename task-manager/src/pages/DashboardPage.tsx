@@ -13,25 +13,42 @@ import {
   createBoard,
   getUserId,
   fetchUserBoards,
+  updateBoard,
+  generateUniqueAccessCode,
+  getUserName,
+  joinBoard,
 } from '../firebase/firestore-utils';
 import { signOutUser } from '../firebase-auth';
 import { access } from 'fs';
+import BoardCard from '../components/BoardCard';
 
-type Board = {
-  id: string,
-  title: string,
-  accessCode: string
-  description: string
+export type Board = {
+  id: string;
+  title: string;
+  accessCode: string;
+  description: string;
+  createdAt: Date;
+  ownerRef: any;
+  sharedWith: any[];
 };
 
 const DashboardPage = () => {
   const [userId, setUserId] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [accessCode, setAccessCode] = useState('');
   const [isDarkMode, setDarkMode] = useState<boolean>(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showAccessCodeModal, setShowAccessCodeModal] = useState(false);
+  const [showAccessCodeInput, setShowAccessCodeInput] = useState(false);
+  const [accessCodeInput, setAccessCodeInput] = useState('');
+  const [editingBoard, setEditingBoard] = useState<Board | null>(null);
+  const [newTitle, setNewTitle] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [newAccessCode, setNewAccessCode] = useState('');
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -48,28 +65,34 @@ const DashboardPage = () => {
   }, [isDarkMode]);
   
   useEffect(() => {
-    const loadUserAndBoards = async () => {
-      const uid = await getUserId();
-      if (!uid) return;
+  const loadUserAndBoards = async () => {
+    const uid = await getUserId();
+    if (!uid) {
+      setLoading(false);
+      return;
+    }
 
-      setUserId(uid);
+    setUserId(uid);
 
-      try {
-        const data = await fetchUserBoards(uid);
-        setBoards(data);
-      } catch (error) {
-        console.error('Error loading boards:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    try {
+      const name = await getUserName(uid);
+      setUserName(name);
+      const data = await fetchUserBoards(uid);
+      setBoards(data);
+    } catch (error) {
+      console.error('Error loading boards or user info:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    loadUserAndBoards();
-  }, []);
+  loadUserAndBoards();
+}, []);
 
   const handleAddBoard = async () => {
-    if (!title.trim() || !description.trim()) return;
-    console.log("Sifficient elements");
+    title.trim();
+    description.trim();
+    console.log("Sufficient elements");
     if (!userId) {
       console.log("Error: user is not logged in");
       return;
@@ -95,7 +118,8 @@ const DashboardPage = () => {
   };
 
   const handleDeleteBoard = async (id: string) => {
-    await deleteBoardById(id);
+    if(!userId) return;
+    await deleteBoardById(id, userId);
     const updated = boards.filter((board) => board.id !== id);
     setBoards(updated);
   }
@@ -106,6 +130,71 @@ const DashboardPage = () => {
       navigate('/');
     } catch (error) {
       console.error(error);
+    }
+  };
+  //Edit Board
+  const handleUpdateBoard = async (board: Board) => {
+    if (!userId) return;
+    title.trim();
+    description.trim();
+    accessCode.trim();
+    await updateBoard(board.id, {
+      title: board.title,
+      description: board.description,
+      accessCode: board.accessCode,
+    });
+    setBoards(prev =>
+      prev.map(t => (t.id === board.id ? {...t, ...board}:t))
+    );
+  };
+  const handleEditSubmit = async () => {
+    if (!editingBoard) return;
+    await handleUpdateBoard({
+      ...editingBoard,
+      title: newTitle,
+      description: newDescription,
+    });
+    setShowEditModal(false);
+    setEditingBoard(null);
+    setNewTitle('');
+    setNewDescription(''); 
+  };
+
+  const handleEditClick = (board: Board) => {
+    setEditingBoard(board); // set the task to be edited
+    setNewTitle(board.title); // populate form fields
+    setNewDescription(board.description);
+    setShowEditModal(true); // show the modal
+  };
+  //Share
+  const handleShareSubmit = () => {
+  setShowAccessCodeModal(false);
+  setEditingBoard(null);
+};
+
+  const handleShareClick = async (board: Board) => {
+    setEditingBoard(board); // set the task to be edited
+    setShowAccessCodeModal(true); // show the modal
+    if (!board.accessCode) {
+      const uniqueCode = await generateUniqueAccessCode();
+      await handleUpdateBoard({ ...board, accessCode: uniqueCode });
+      setNewAccessCode(uniqueCode); // display in modal
+    } else {
+      setNewAccessCode(board.accessCode); // show existing code
+    }
+  };
+
+  const handleJoinBoard = async () => {
+    if(!accessCodeInput.trim()) return;
+    if(!userId) return;
+
+    const board = await joinBoard(accessCodeInput.trim(), userId);
+    if(board) {
+      setBoards(prev => [...prev, board]);
+      setAccessCodeInput('');
+      setShowAccessCodeInput(false);
+    } else {
+      alert('Error joining: check input');
     }
   };
 
@@ -144,6 +233,7 @@ const DashboardPage = () => {
       <h2 className="text-2xl font-bold mb-6">
         Dashboard ({userId})
       </h2>
+      {/* {userName ? `(${userName})` : `(${userId})`} */}
       
       {/* Board Creation Form */}
       <div className="mb-6 bg-white dark:bg-gray-800 text-black dark:text-white p-4 rounded-xl shadow">
@@ -172,35 +262,112 @@ const DashboardPage = () => {
       {/* Boards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {boards.map((board) => (
-          <div
+          <BoardCard
             key={board.id}
-            className="relative bg-white dark:bg-gray-700 text-black dark:text-white  p-6 rounded-xl shadow-lg hover:shadow-xl transition"
-          >
-            <button
-              onClick={() => handleDeleteBoard(board.id)}
-              className='absolute top-2 right-2 text-red-500 text-lg font-bold'
-            >
-              &times;
-            </button>
-            <h3 className="text-xl font-semibold">{board.title}</h3>
-            <p className="text-gray-500">{board.description}</p>
-            <Link
-              to={`/board/${board.id}`}
-              className="text-blue-500 hover:text-blue-700 mt-4 inline-block"
-            >
-              View Board
-            </Link>
-          </div>
+            board={board}
+            onDelete={handleDeleteBoard}
+            onEdit={handleEditClick}
+            onShare={handleShareClick} // placeholder
+          />
         ))}
       </div>
 
       {/* Fixed Delete Button */}
       <button
-        onClick={handleDeleteAll}
-        className="fixed bottom-4 right-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+        onClick={() => setShowAccessCodeInput(true)}
+        className="fixed bottom-4 right-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
       >
-        Delete All Boards
+        Join Board by Access Code
       </button>
+      {showEditModal && editingBoard && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-[90%] max-w-md shadow-lg relative">
+            <button
+              onClick={() => setShowEditModal(false)}
+              className="absolute top-2 right-3 text-gray-500 dark:text-gray-200 text-xl hover:text-gray-800"
+            >
+              &times;
+            </button>
+
+            <h2 className="text-lg font-bold mb-4 text-black dark:text-white">Edit Task</h2>
+
+            <input
+              type="text"
+              placeholder="Task Title"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              className="w-full mb-2 p-2 border rounded dark:bg-gray-700 dark:text-white"
+            />
+            <textarea
+              placeholder="Task Description"
+              value={newDescription}
+              onChange={(e) => setNewDescription(e.target.value)}
+              className="w-full h-40 mb-4 p-2 border rounded dark:bg-gray-700 dark:text-white"
+            />
+            <button
+              onClick={handleEditSubmit}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
+            >
+              Save Changes
+            </button>
+          </div>
+        </div>
+      )}
+      {showAccessCodeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-[90%] max-w-md shadow-lg relative">
+            <button
+              onClick={() => setShowAccessCodeModal(false)}
+              className="absolute top-2 right-3 text-gray-500 dark:text-gray-200 text-xl hover:text-gray-800"
+            >
+              &times;
+            </button>
+
+            <h2 className="text-lg font-bold mb-4 text-black dark:text-white">Access Code</h2>
+
+            <input
+              value={newAccessCode}
+              readOnly
+              className="w-full mb-4 p-2 border rounded dark:bg-gray-700 dark:text-white font-mono text-center text-xl"
+            />
+            <button
+              onClick={() => navigator.clipboard.writeText(newAccessCode)}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
+            >
+              Copy
+            </button>
+          </div>
+        </div>
+      )}
+      {showAccessCodeInput && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-[90%] max-w-md shadow-lg relative">
+            <button
+              onClick={() => setShowAccessCodeInput(false)}
+              className="absolute top-2 right-3 text-gray-500 dark:text-gray-200 text-xl hover:text-gray-800"
+            >
+              &times;
+            </button>
+
+            <h2 className="text-lg font-bold mb-4 text-black dark:text-white">Enter Access Code</h2>
+
+            <input
+              value={accessCodeInput}
+              onChange={(e) => setAccessCodeInput(e.target.value)}
+              placeholder="Enter access code"
+              className="w-full mb-4 p-2 border rounded dark:bg-gray-700 dark:text-white"
+            />
+
+            <button
+              onClick={handleJoinBoard}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
+            >
+              Join Board
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

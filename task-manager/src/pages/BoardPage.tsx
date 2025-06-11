@@ -142,12 +142,12 @@ const BoardPage = () => {
   };
 
   const handleEditClick = (task: Task) => {
-  setEditingTask(task); // set the task to be edited
-  setNewTitle(task.title); // populate form fields
-  setNewDescription(task.description);
-  setNewStatus(task.status);
-  setShowEditModal(true); // show the modal
-};
+    setEditingTask(task); // set the task to be edited
+    setNewTitle(task.title); // populate form fields
+    setNewDescription(task.description);
+    setNewStatus(task.status);
+    setShowEditModal(true); // show the modal
+  };
 
 
   if (loading) return (
