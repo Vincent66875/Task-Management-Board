@@ -2,12 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import app from '../firebase-config';
-import { fetchTasks, addTask, deleteTask, updateTask } from '../firebase/firestore-utils';
+import { fetchTasks, addTask, deleteTask, updateTask, getUserId } from '../firebase/firestore-utils';
 import { DndContext, DragEndEvent, useSensor, useSensors, closestCenter, PointerSensor } from '@dnd-kit/core';
 import DroppableColumn from '../components/DroppableColumn';
 import { SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
-
-const db = getFirestore(app);
+import { db } from '../firebase/firestore-utils';
 
 export type TaskStatus = 'To Do' | 'In Progress' | 'Done';
 
@@ -19,6 +18,9 @@ export type Task = {
 };
 
 const BoardPage = () => {
+  // if (!getUserId()) {
+  //   throw new Error('User not logged in');
+  // }
   const { id: boardId } = useParams();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [board, setBoard] = useState<{ title: string } | null>(null);
@@ -174,7 +176,6 @@ const BoardPage = () => {
       onDragEnd={handleDragEnd}
     >
       <div className="min-h-screen bg-blue-50 dark:bg-gray-900 text-black dark:text-white p-8 relative">
-        {/* Theme Toggle Button */}
         <button
           onClick={toggleTheme}
           className="p-2 rounded bg-gray-300 dark:bg-gray-600 text-black dark:text-white absolute top-4 right-4"

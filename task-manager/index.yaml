@@ -3,8 +3,10 @@ collections:
   users:
     documentId: userId
     fields:
-      displayName: string
+      name: string
       email: string
+      password: string
+      darkMode: boolean
   boards:
     documentId: boardId
     fields:

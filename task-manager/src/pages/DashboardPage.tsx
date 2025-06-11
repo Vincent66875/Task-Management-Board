@@ -1,23 +1,39 @@
 // src/pages/DashboardPage.tsx
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { fetchAllBoards, deleteAllBoards, createBoard, deleteBoardById } from '../firebase/firestore-utils';
+import {
+  fetchBoardByAccessCode,
+  fetchBoardById,
+  fetchTasks,
+  deleteAllBoards,
+  deleteBoardById,
+  deleteTask,
+  updateTask,
+  addTask,
+  createBoard,
+  getUserId,
+  fetchUserBoards,
+} from '../firebase/firestore-utils';
 import { signOutUser } from '../firebase-auth';
+import { access } from 'fs';
 
 type Board = {
-  id: string;
-  title: string;
-  description: string;
+  id: string,
+  title: string,
+  accessCode: string
+  description: string
 };
 
 const DashboardPage = () => {
+  const [userId, setUserId] = useState<string | null>(null);
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [accessCode, setAccessCode] = useState('');
   const [isDarkMode, setDarkMode] = useState<boolean>(false);
   const navigate = useNavigate();
-
+  
   useEffect(() => {
     const saved = localStorage.getItem('theme');
     if (saved === 'dark') setDarkMode(true);
@@ -30,11 +46,16 @@ const DashboardPage = () => {
         document.documentElement.classList.remove('dark');
       }
   }, [isDarkMode]);
-
+  
   useEffect(() => {
-    const loadBoards = async () => {
+    const loadUserAndBoards = async () => {
+      const uid = await getUserId();
+      if (!uid) return;
+
+      setUserId(uid);
+
       try {
-        const data = await fetchAllBoards();
+        const data = await fetchUserBoards(uid);
         setBoards(data);
       } catch (error) {
         console.error('Error loading boards:', error);
@@ -42,20 +63,34 @@ const DashboardPage = () => {
         setLoading(false);
       }
     };
-    loadBoards();
+
+    loadUserAndBoards();
   }, []);
 
   const handleAddBoard = async () => {
     if (!title.trim() || !description.trim()) return;
-    const newBoard = await createBoard(title, description);
-    setBoards(prev => [...prev, newBoard]);
-    setTitle('');
-    setDescription('');
+    console.log("Sifficient elements");
+    if (!userId) {
+      console.log("Error: user is not logged in");
+      return;
+    }
+    try {
+      const newBoard = await createBoard({ userId, title, description});
+      setBoards(prev => [...prev, newBoard]);
+      setTitle('');
+      setDescription('');
+    } catch (error) {
+      console.error("Failed to create board:", error);
+    }
   };
 
   const handleDeleteAll = async () => {
     await deleteAllBoards();
-    const updated = await fetchAllBoards();
+    if (!userId) {
+      console.log("Error: user is not logged in");
+      return;
+    }
+    const updated = await fetchUserBoards(userId);
     setBoards(updated);
   };
 
@@ -106,7 +141,9 @@ const DashboardPage = () => {
         </button>
       </div>
 
-      <h2 className="text-2xl font-bold mb-6">Dashboard</h2>
+      <h2 className="text-2xl font-bold mb-6">
+        Dashboard ({userId})
+      </h2>
       
       {/* Board Creation Form */}
       <div className="mb-6 bg-white dark:bg-gray-800 text-black dark:text-white p-4 rounded-xl shadow">

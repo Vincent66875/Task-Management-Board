@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signUpWithEmail } from '../firebase-auth';
+import { db, auth } from '../firebase/firestore-utils';
+import { doc, setDoc } from 'firebase/firestore';
 
 const SignUpPage = () => {
   const navigate = useNavigate();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -35,9 +38,16 @@ const SignUpPage = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await signUpWithEmail(email, password);
+      const userCredential = await signUpWithEmail(email, password);
+      const uid = userCredential.uid;
+      await setDoc(doc(db, 'users', uid), {
+        name,
+        email,
+        darkMode: isDarkMode,
+      });
       navigate('/dashboard');
     } catch (err) {
+      console.error('Signup error:', err);
       setError('Sign-up failed. Try a different email.');
     }
   };
@@ -56,6 +66,14 @@ const SignUpPage = () => {
         <h2 className="text-2xl font-bold mb-6 text-center">Sign Up</h2>
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
         <form onSubmit={handleSignUp} className="space-y-4">
+          <input
+            type="text"
+            placeholder="Name"
+            className={`w-full p-3 border rounded-xl ${isDarkMode ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-black'}`}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
           <input
             type="email"
             placeholder="Email"
