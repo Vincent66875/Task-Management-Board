@@ -5,7 +5,8 @@ import {getAuth
   , GoogleAuthProvider
   , signOut} from 'firebase/auth'
 import app from './firebase-config';
-
+import { getDoc, setDoc, doc } from 'firebase/firestore';
+import { db } from './firebase/firestore-utils';
 const auth = getAuth(app);
 
 export const signInWithEmail = async (email: string, password: string) => {
@@ -37,14 +38,20 @@ export const signUpWithEmail = async (email: string, password: string) => {
 };
 
 export const signInWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    try{
-        const result = await signInWithPopup(auth, provider);
-        return result.user;
-    } catch (error) {
-        console.error(error);
-        throw new Error('Google sign-up failed');
-    }
+  const provider = new GoogleAuthProvider();
+  const result = await signInWithPopup(auth, provider);
+  const user = result.user;
+
+  const userDoc = await getDoc(doc(db, 'users', user.uid));
+
+  if (!userDoc.exists()) {
+    // Temporarily store uid/email in localStorage or a global store
+    localStorage.setItem('pendingGoogleUid', user.uid);
+    localStorage.setItem('pendingGoogleEmail', user.email || '');
+    return 'redirect:/complete-profile';
+  }
+
+  return 'redirect:/dashboard';
 };
 
 export const signOutUser = async () => {

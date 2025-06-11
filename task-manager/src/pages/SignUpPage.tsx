@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signUpWithEmail } from '../firebase-auth';
-import { db, auth } from '../firebase/firestore-utils';
+import { db } from '../firebase/firestore-utils';
 import { doc, setDoc } from 'firebase/firestore';
 
 const SignUpPage = () => {

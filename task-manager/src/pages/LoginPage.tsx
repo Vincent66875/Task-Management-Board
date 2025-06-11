@@ -37,10 +37,15 @@ const LoginPage = () => {
 
   const handleGoogleLogin = async () => {
     try {
-      await signInWithGoogle();
-      navigate('/dashboard');
+      const result = await signInWithGoogle();
+
+      if (result === 'redirect:/complete-profile') {
+        navigate('/complete-profile');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
-      console.error("Google Sign-In Error:", err); // Add this line
+      console.error("Google Sign-In Error:", err);
       setError('Google login failed');
     }
   };

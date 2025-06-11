@@ -11,11 +11,11 @@ import {getFirestore,
         where, 
         QuerySnapshot} from 'firebase/firestore';
 import app from '../firebase-config';
-import { getAuth } from 'firebase/auth';
+import { auth } from '../context/AuthProvider';
 import { Board } from '../pages/DashboardPage';
 
 export const db = getFirestore(app);
-export const auth = getAuth();
+
 const user = auth.currentUser;
 type TaskStatus = 'To Do' | 'In Progress' | 'Done';
 
@@ -29,14 +29,15 @@ export const getUserId = async (): Promise<string> => {
   }
 };
 export const getUserName = async (id: string): Promise<string | null> => {
-  try{
+  try {
     const userDocRef = doc(db, 'users', id);
     const userDocSnap = await getDoc(userDocRef);
-    if(userDocSnap.exists()){
-      return String(userDocSnap.data()) || null;
+    if (userDocSnap.exists()) {
+      const data = userDocSnap.data();
+      return typeof data.name === 'string' ? data.name : null;
     }
     return null;
-  }catch(err){
+  } catch (err) {
     console.error(err);
     return null;
   }

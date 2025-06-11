@@ -231,9 +231,8 @@ const DashboardPage = () => {
       </div>
 
       <h2 className="text-2xl font-bold mb-6">
-        Dashboard ({userId})
+        {userName}'s Dashboard
       </h2>
-      {/* {userName ? `(${userName})` : `(${userId})`} */}
       
       {/* Board Creation Form */}
       <div className="mb-6 bg-white dark:bg-gray-800 text-black dark:text-white p-4 rounded-xl shadow">
